@@ -86,13 +86,17 @@ public class TermAIUnidbg {
     public void info() {
         loadLib();
         if (module == null) return;
-        List<String> names = new ArrayList<>(module.getExports().keySet());
-        Collections.sort(names);
-        System.out.println("{\"event\":\"exports\",\"count\":" + names.size() + "}");
-        for (String n : names) {
-            long addr = module.base + module.getExports().get(n);
-            System.out.println("  {\"name\":\"" + n + "\",\"addr\":\"0x"
-                    + Long.toHexString(addr) + "\"}");
+        // 新版 unidbg: getExports() 已移除, 用 getExportedSymbols()
+        java.util.List<com.github.unidbg.Symbol> syms = new ArrayList<>(module.getExportedSymbols());
+        Collections.sort(syms, new java.util.Comparator<com.github.unidbg.Symbol>() {
+            public int compare(com.github.unidbg.Symbol a, com.github.unidbg.Symbol b) {
+                return a.getName().compareTo(b.getName());
+            }
+        });
+        System.out.println("{\"event\":\"exports\",\"count\":" + syms.size() + "}");
+        for (com.github.unidbg.Symbol s : syms) {
+            System.out.println("  {\"name\":\"" + s.getName() + "\",\"addr\":\"0x"
+                    + Long.toHexString(s.getAddress()) + "\"}");
         }
     }
 
@@ -100,13 +104,13 @@ public class TermAIUnidbg {
     public void call(String func, long[] args) {
         loadLib();
         if (module == null) return;
-        Number fn = module.getExports().get(func);
-        if (fn == null) { err("export not found: " + func); return; }
+        com.github.unidbg.Symbol fn = module.findSymbolByName(func);
+        if (fn == null || fn.isUndef()) { err("export not found: " + func); return; }
         try {
             // 用 emulator 调用: 传 Number[] 参数
             Number[] nArgs = new Number[args.length];
             for (int i = 0; i < args.length; i++) nArgs[i] = args[i];
-            Number ret = module.callFunction(emulator, fn.longValue(), nArgs);
+            Number ret = fn.call(emulator, nArgs);
             out("{\"event\":\"call\",\"func\":\"" + func + "\",\"ret\":\"" + ret
                     + "\",\"ret_u64\":" + ret.longValue() + "}");
         } catch (Throwable t) {
@@ -137,15 +141,15 @@ public class TermAIUnidbg {
     public void str(String func, String argName) {
         loadLib();
         if (module == null) return;
-        Number fn = module.getExports().get(func);
-        if (fn == null) { err("export not found: " + func); return; }
+        com.github.unidbg.Symbol fn = module.findSymbolByName(func);
+        if (fn == null || fn.isUndef()) { err("export not found: " + func); return; }
         try {
             // 分配字符串到内存
             UnidbgPointer p = emulator.getMemory().malloc(argName.length() + 1, true).getPointer();
             p.write(0, argName.getBytes("UTF-8"), 0, argName.length());
             long addr = p.peer;
             out("{\"event\":\"strarg\",\"addr\":\"0x" + Long.toHexString(addr) + "\"}");
-            Number ret = module.callFunction(emulator, fn.longValue(), addr);
+            Number ret = fn.call(emulator, addr);
             out("{\"event\":\"str\",\"func\":\"" + func + "\",\"ret\":" + ret.longValue() + "}");
             // 尝试 dump 返回指针处字符串
             try {
@@ -164,14 +168,14 @@ public class TermAIUnidbg {
     public void trace(String func, long[] args) {
         loadLib();
         if (module == null) return;
-        Number fn = module.getExports().get(func);
-        if (fn == null) { err("export not found: " + func); return; }
+        com.github.unidbg.Symbol fn = module.findSymbolByName(func);
+        if (fn == null || fn.isUndef()) { err("export not found: " + func); return; }
         // 直接调用并记录耗时（指令级 hook 依赖后端支持，这里做基础耗时/返回值追踪）
         try {
             Number[] nArgs = new Number[args.length];
             for (int i = 0; i < args.length; i++) nArgs[i] = args[i];
             long t0 = System.currentTimeMillis();
-            Number ret = module.callFunction(emulator, fn.longValue(), nArgs);
+            Number ret = fn.call(emulator, nArgs);
             long dt = System.currentTimeMillis() - t0;
             out("{\"event\":\"trace\",\"func\":\"" + func + "\",\"ret\":\"" + ret
                     + "\",\"ms\":" + dt + "}");
