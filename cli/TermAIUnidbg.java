@@ -13,17 +13,6 @@ import com.github.unidbg.linux.android.dvm.VM;
 import com.github.unidbg.linux.android.dvm.jni.ProxyClassFactory;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.pointer.UnidbgPointer;
-import com.github.unidbg.arm.context.RegisterContext;
-import com.github.unidbg.debugger.Debugger;
-import com.github.unidbg.hook.hookzz.HookZz;
-import com.github.unidbg.hook.hookzz.IHookZz;
-import com.github.unidbg.hook.hookzz.WrapCallback;
-import com.github.unidbg.hook.hookzz.Instrument;
-import com.github.unidbg.hook.hookzz.HookEntryInfo;
-import com.github.unidbg.hook.arm64.HookZzArm64Handler;
-import com.github.unidbg.hook.arm64.HookZzArm64;
-import com.github.unidbg.arm.ARMEmulator;
-import com.sun.jna.Pointer;
 
 import java.io.File;
 import java.util.*;
@@ -51,8 +40,9 @@ public class TermAIUnidbg {
     public TermAIUnidbg(String soPath, boolean useDynarmic) {
         this.soPath = soPath;
         try {
-            AndroidEmulatorBuilder builder = AndroidEmulatorBuilder.for64Bit()
-                    .setProcessName("com.termai.probe");
+            // setProcessName() 返回父类型 EmulatorBuilder, 不能链式赋给 AndroidEmulatorBuilder, 故分步
+            AndroidEmulatorBuilder builder = AndroidEmulatorBuilder.for64Bit();
+            builder.setProcessName("com.termai.probe");
             builder.addBackendFactory(useDynarmic
                     ? new DynarmicFactory(true)
                     : new Unicorn2Factory(true));
