@@ -17,6 +17,17 @@
       <artifactId>unidbg-android</artifactId>
       <version>0.9.10-SNAPSHOT</version>
     </dependency>
+    <!-- 新版 unidbg 把后端引擎拆成独立 artifact -->
+    <dependency>
+      <groupId>com.github.zhkl0228</groupId>
+      <artifactId>unidbg-dynarmic</artifactId>
+      <version>0.9.10-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.zhkl0228</groupId>
+      <artifactId>unidbg-unicorn2</artifactId>
+      <version>0.9.10-SNAPSHOT</version>
+    </dependency>
   </dependencies>
   <build>
     <!-- ★ 源文件在 cli/ 根目录, 指定 sourceDirectory 否则 Maven 找不到 -->
