@@ -32,41 +32,34 @@ jobs:
           echo "unidbg commit: $(git rev-parse --short HEAD)"
           echo "unidbg date:   $(git log -1 --format=%ci)"
 
-      - name: 编译 unidbg 全部模块 (跳过测试)
+      - name: 编译 unidbg 全部模块并 install 到本地仓库 (跳过测试)
         run: |
           cd unidbg-src
           mvn -q -B -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true install
           echo "=== unidbg 编译产物 ==="
           find . -name "*.jar" -path "*/target/*" | grep -v sources | head -20
 
-      - name: 复制 CLI 源码与 pom 到 unidbg 源码树
+      - name: 独立编译 TermAI CLI (standalone pom)
         run: |
-          mkdir -p unidbg-src/termai-cli/src/main/java/com/termai/unidbg
-          cp cli/TermAIUnidbg.java unidbg-src/termai-cli/src/main/java/com/termai/unidbg/
-          cp cli/pom.xml unidbg-src/termai-cli/pom.xml
-
-      - name: 编译 CLI 并收集依赖
-        run: |
-          cd unidbg-src
-          mvn -B -DskipTests -pl termai-cli -am install
-          echo "=== termai-cli 产物 ==="
-          ls -la termai-cli/target/ 2>/dev/null
+          mvn -B -DskipTests -f cli/pom.xml package
+          echo "=== CLI 产物 ==="
+          ls -la cli/target/
           echo "=== 依赖 ==="
-          ls termai-cli/target/libs/ 2>/dev/null | head -40
+          ls cli/target/libs/ | head -40
 
       - name: 组装可分发包
         run: |
           set -e
           PKG="$GITHUB_WORKSPACE/unidbg-cli-pkg"
           mkdir -p "$PKG/libs"
-          cp unidbg-src/termai-cli/target/unidbg-cli-1.0.jar "$PKG/"
-          cp -r unidbg-src/termai-cli/target/libs/* "$PKG/libs/"
+          cp cli/target/unidbg-cli-1.0.jar "$PKG/"
+          cp -r cli/target/libs/* "$PKG/libs/"
           cp launcher/unidbg "$PKG/unidbg"
           chmod +x "$PKG/unidbg"
           echo "=== 包内容 ==="
           ls -la "$PKG"
-          echo "--- libs ---"
-          ls "$PKG/libs" | head -40
+          echo "--- libs count ---"
+          ls "$PKG/libs" | wc -l
           du -sh "$PKG"
           tar czf "$GITHUB_WORKSPACE/unidbg-cli-arm64.tar.gz" -C "$GITHUB_WORKSPACE" unidbg-cli-pkg
 
