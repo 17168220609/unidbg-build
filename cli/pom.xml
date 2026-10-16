@@ -19,6 +19,8 @@
     </dependency>
   </dependencies>
   <build>
+    <!-- ★ 源文件在 cli/ 根目录, 指定 sourceDirectory 否则 Maven 找不到 -->
+    <sourceDirectory>${project.basedir}</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
