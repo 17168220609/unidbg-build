@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# TermAI unidbg CLI 启动脚本
+# 用法: ./unidbg info <so>
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec java -cp "$DIR/unidbg-cli-1.0.jar:$DIR/libs/*" com.termai.unidbg.TermAIUnidbg "$@"
